@@ -47,10 +47,19 @@ def test_contains():
     assert test_bucket.contains(0b1111) == False
 
 def test_remove():
-    """ """
+    """ Ensures we can remove items in bucket and cannot for items not in bucket """
     num_entries = 2
     test_bucket = bucket_classes.Bucket(num_entries)    
     test_bucket.insert(0b0011)
     assert test_bucket.remove(0b0011) == True
     assert test_bucket.remove(0b0011) == False
+
+def test_swap_random_entry():
+    """ Ensure we can we can swap with a entry in bucket """
+    num_entries = 2
+    test_bucket = bucket_classes.Bucket(num_entries)    
+    test_bucket.insert(0b0011)
+    test_bucket.insert(0b0011)
+    assert test_bucket.swap_with_random_entry(0b1100) == 0b0011
     
+
