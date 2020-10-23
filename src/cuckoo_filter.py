@@ -4,6 +4,7 @@ Description: Contains the basic implementation for a Cuckoo Filter
 import bucket_classes
 import hashlib
 import sys
+import random
 
 class CuckooFilter:
 
@@ -76,7 +77,7 @@ class CuckooFilter:
             return True
 
         #Try to relocate some of the items in bucket
-        index = random.choice([index_one])
+        index = random.choice([index_one, index_two])
         for n in range(0, self.max_iter):
             fingerprint = self.filter[index].swap_with_random_entry(fingerprint)
 
