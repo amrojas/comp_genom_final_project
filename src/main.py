@@ -1,5 +1,6 @@
 import argparse
 import cuckoo_filter
+import time
 
 from read import Read
 from config import *
@@ -11,15 +12,18 @@ def create_cuckoo_filter(args):
     global cuckooFilter
     print("Creating the sketch. This might take a while ...")
     cuckooFilter = cuckoo_filter.CuckooFilter(NUM_BUCKETS, FP_SIZE, BUCKET_SIZE, MAX_ITER)
+    start = time.time()
     if args.k == 0:
         for read in read_list:
             cuckooFilter.insert(read.line)
-        print("Cuckoo filter created without splitting the reads into k-mers")
+        end = time.time()
+        print("Cuckoo filter created without splitting the reads into k-mers, it took {:.3f} secs".format((end-start)))
     else:
         for read in read_list:
             for i in range(len(read.line) - args.k):
                 cuckooFilter.insert(read.line[i:i+args.k])
-        print("Cuckoo filter created with kmers of size {}".format(args.k))
+        end = time.time()
+        print("Cuckoo filter created with kmers of size {}, it took {:.3f} secs".format(args.k, (end-start)))
 
 def create_cuckoo_tree():
     raise NotImplementedError
@@ -70,7 +74,7 @@ def initiate(args):
     if args.interactive:
         cli(args)
 
-            
+
 
 def arguments():
     usg = '''
