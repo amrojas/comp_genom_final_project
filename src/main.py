@@ -74,10 +74,10 @@ def initiate(args):
 
 def arguments():
     usg = '''
-        main.py [-h] {optimal_cores,tail} [--datafiles DATAFILE1.FASTQ DATAFILE2.FASTQ ...] [--interactive] [--k Kmer_size]
+        main.py [-h] [--datafiles DATAFILE1.FASTQ DATAFILE2.FASTQ ...] [--interactive] [--k Kmer_size]
                
     '''
-    parser = argparse.ArgumentParser(description='Queuing System Simulation Software', usage=usg)
+    parser = argparse.ArgumentParser(description='Cuckoo Filter Tree Implementation', usage=usg)
     parser.add_argument('--datafiles', dest='datafiles', nargs="+", required=True,
                         help='The input file to populate the data structures')
     parser.add_argument("--interactive", help="Start CLI after reading files", action='store_true')
