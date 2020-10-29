@@ -17,13 +17,13 @@ def create_cuckoo_filter(args):
         for read in read_list:
             cuckooFilter.insert(read.line)
         end = time.time()
-        print("Cuckoo filter created without splitting the reads into k-mers, it took {:.3f} secs".format((end-start)))
+        print("Cuckoo filter created without splitting the reads into k-mers, it took {:.4f} secs".format((end-start)))
     else:
         for read in read_list:
             for i in range(len(read.line) - args.k):
                 value = cuckooFilter.insert(read.line[i:i+args.k])
         end = time.time()
-        print("Cuckoo filter created with kmers of size {}, it took {:.3f} secs".format(args.k, (end-start)))
+        print("Cuckoo filter created with kmers of size {}, it took {:.4f} secs".format(args.k, (end-start)))
 
 def create_cuckoo_tree():
     raise NotImplementedError
@@ -79,7 +79,7 @@ def initiate(args):
 def arguments():
     usg = '''
         main.py [-h] [--datafiles DATAFILE1.FASTQ DATAFILE2.FASTQ ...] [--interactive] [--k Kmer_size]
-               
+
     '''
     parser = argparse.ArgumentParser(description='Cuckoo Filter Tree Implementation', usage=usg)
     parser.add_argument('--datafiles', dest='datafiles', nargs="+", required=True,
