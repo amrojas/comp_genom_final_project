@@ -21,7 +21,7 @@ def create_cuckoo_filter(args):
     else:
         for read in read_list:
             for i in range(len(read.line) - args.k):
-                cuckooFilter.insert(read.line[i:i+args.k])
+                value = cuckooFilter.insert(read.line[i:i+args.k])
         end = time.time()
         print("Cuckoo filter created with kmers of size {}, it took {:.3f} secs".format(args.k, (end-start)))
 
