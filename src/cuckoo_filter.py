@@ -119,3 +119,25 @@ class CuckooFilterStash(CuckooFilter):
         super().__init__(num_buckets, fp_size, bucket_size, max_iter)
         self.stash_size = stash_size
         self.stash = bucket_classes.Bucket(self.stash_size)
+        self.total_capacity += self.stash_size
+    
+    def insert(self, item):
+        insert_result = super().insert(item)
+        if not insert_result and not self.stash.isFull():
+            self.num_items_in_filter += 1
+            return self.stash.insert(item)
+        return insert_result
+    
+    def contains(self, item):
+        fingerprint, index_one, index_two = super().get_fp_and_index_positions(item)
+        return (super.contains(item) or self.stash.contains(fingerprint))
+    
+    def delete(self, item):
+        delete_result = super().delete(item)
+        fingerprint, index_one, index_two = super().get_fp_and_index_positions(item)
+        if not delete_result and self.stash.contains(fingerprint):
+            self.num_items_in_filter -= 1
+            return self.stash.remove(fingerprint)
+        return delete_result
+
+        
