@@ -8,7 +8,7 @@ import random
 
 class CuckooFilter:
 
-    def __init__(self, num_buckets, fp_size, bucket_size = 4, max_iter = 500):
+    def __init__(self, num_buckets, fp_size, bucket_size, max_iter):
         """
         Creates a standard Cuckoo Filter.
 
@@ -112,3 +112,9 @@ class CuckooFilter:
             self.num_items_in_filter -= 1
             return self.filter[index_two].remove(fingerprint)
         return False
+
+class CuckooFilterStash(CuckooFilter):
+
+    def __init__(self, num_buckets, fp_size, bucket_size, max_iter, stash_size):
+        super().__init__(num_buckets, fp_size, bucket_size, max_iter)
+        self.stash_size = stash_size
