@@ -118,3 +118,4 @@ class CuckooFilterStash(CuckooFilter):
     def __init__(self, num_buckets, fp_size, bucket_size, max_iter, stash_size):
         super().__init__(num_buckets, fp_size, bucket_size, max_iter)
         self.stash_size = stash_size
+        self.stash = bucket_classes.Bucket(self.stash_size)
