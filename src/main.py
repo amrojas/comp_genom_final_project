@@ -17,7 +17,12 @@ def print_stats(filter_stats, sketch_config):
 def create_cuckoo_filter(sketch_config, filter_stats):
     global cuckooFilter
     # print("Creating the sketch. This might take a while ...")
-    cuckooFilter = cuckoo_filter.CuckooFilter(sketch_config.num_buckets, sketch_config.fp_size, sketch_config.bucket_size, sketch_config.max_iter)
+    if sketch_config.stash != 0:
+        cuckooFilter = cuckoo_filter.CuckooFilterStash(sketch_config.num_buckets, 
+            sketch_config.fp_size, sketch_config.bucket_size, sketch_config.max_iter, sketch_config.stash)
+    else:
+        cuckooFilter = cuckoo_filter.CuckooFilter(sketch_config.num_buckets, sketch_config.fp_size, 
+            sketch_config.bucket_size, sketch_config.max_iter)
     items = 0
     start = time.time()
     if sketch_config.k == 0:
@@ -85,7 +90,7 @@ def initiate(args):
         # print("File {} read into memory".format(filename))
 
     # print(read_list[:20])
-    sketch_config = SketchConfig(args.b, args.f, args.s, args.i, args.k)
+    sketch_config = SketchConfig(args.b, args.f, args.s, args.i, args.k, args.stash)
     filter_stats = {
         "items" : 0,
         "creation_time" : 0.0,
@@ -102,7 +107,7 @@ def initiate(args):
 def arguments():
     usg = '''
         main.py [-h] [--datafiles DATAFILE1.FASTQ DATAFILE2.FASTQ ...] [--interactive | --create-cuckoo-filter] 
-            [-b buckets] [-f fp_size] [-s bucket_size] [-i iterations] [-k Kmer_size]
+            [-b buckets] [-f fp_size] [-s bucket_size] [-i iterations] [-k Kmer_size] [--stash STASH_SIZE]
     '''
     parser = argparse.ArgumentParser(description='Cuckoo Filter Tree Implementation', usage=usg)
     parser.add_argument('--datafiles', dest='datafiles', nargs="+", required=True,
@@ -113,6 +118,7 @@ def arguments():
     parser.add_argument("-f", help="Fingerprint size. Default=16", default=16, type=int)
     parser.add_argument("-s", help="Bucket size. Default=64", default=64, type=int)
     parser.add_argument("-i", help="Max iterations befor insertion fails. Default=500", default=500, type=int)
+    parser.add_argument("--stash", help="Stash size. Default=10", default=10, type=int)
     parser.add_argument("--create-cuckoo-filter", help="Create the cuckoo filter, measure the creation time and load factor, then exit.", action='store_true')
 
     args = parser.parse_args()
