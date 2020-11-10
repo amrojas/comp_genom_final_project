@@ -12,5 +12,9 @@ class Read:
         self.line = line
         self.quality = quality
 
+    def kmers(self, k: int):
+        for i in range(len(self.line) - k):
+            yield self.line[i:i+k]
+
     def __repr__(self) -> str:
         return "{}({}): {}\t {}\n\t\t\t\t{}".format(self.filename, self.read_ptr, self.id, self.line, self.quality)
