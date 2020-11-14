@@ -1,10 +1,11 @@
 """
-Description: Contains the basic implementation for a Cuckoo Filter
+Description: Contains the implementation for a Cuckoo Filter with and without Stash
 """
 import bucket_classes
 import hashlib
 import sys
 import random
+import math
 
 class CuckooFilter:
 
@@ -116,6 +117,11 @@ class CuckooFilter:
 class CuckooFilterStash(CuckooFilter):
 
     def __init__(self, num_buckets, fp_size, bucket_size, max_iter, stash_size):
+        """
+        Creates a Cuckoo Filter with Stash. 
+            
+            stash_size --> size of the stash list
+        """
         super().__init__(num_buckets, fp_size, bucket_size, max_iter)
         self.stash_size = stash_size
         self.stash = bucket_classes.Bucket(self.stash_size)
@@ -123,6 +129,7 @@ class CuckooFilterStash(CuckooFilter):
     
     def insert(self, item):
         insert_result = super().insert(item)
+        print(insert_result)
         if not insert_result and not self.stash.isFull():
             self.num_items_in_filter += 1
             return self.stash.insert(item)
@@ -140,4 +147,43 @@ class CuckooFilterStash(CuckooFilter):
             return self.stash.remove(fingerprint)
         return delete_result
 
-        
+class CuckooFilterAuto(CuckooFilter):
+
+    def __init__(self, expected_num, fp_prob):
+        """
+        Creates a Cuckoo Filter with given false positive probability and expected 
+        number of items to be inserted. Then, parameters of filter are calculated
+        to fit that case.
+        """
+        bucket_size = self.get_bucket_size(fp_prob)
+        fp_size = self.get_fingerprint_size(expected_num, fp_prob, bucket_size)
+        num_buckets = self.get_num_of_buckets(expected_num, bucket_size)
+        super().__init__(num_buckets, fp_size, bucket_size, max_iter=500)
+        self.fp_prob = fp_prob
+
+    def get_bucket_size(self, fp_prob):
+        """
+        Based on heuristics in paper (Fan et al, 2014)
+        """
+        if fp_prob > 0.002:
+            return 4
+        else:
+            return 8
+    
+    def get_fingerprint_size(self, num_buckets, fp_prob, bucket_size):
+        """
+        Based on heuristics in paper (Fan et al, 2014)
+        """
+        fp_size = math.ceil(math.log((1/fp_prob), 2) + math.log(2*bucket_size, 2))
+        return fp_size
+    
+    def get_num_of_buckets(self, expected_num, bucket_size):
+        """
+        Based on heuristics in paper (Fan et al, 2014)
+        """
+        if bucket_size == 4:
+            total_capacity = math.ceil(expected_num/0.95)
+        elif bucket_size == 8:
+            total_capacity = math.ceil(expected_num/0.98)
+        num_buckets = math.ceil(total_capacity/bucket_size)
+        return num_buckets
