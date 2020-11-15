@@ -1,6 +1,7 @@
 import argparse
 import cuckoo_filter
 import time
+from sys import getsizeof
 
 from read import Read
 from config import *
@@ -8,11 +9,12 @@ from config import *
 read_list = []
 cuckooFilter = None
 
-def print_stats(filter_stats, sketch_config):
-    # print("k,buckets,fp_size,buck_size,iterations,items,creation_time,load_factor")
-    print("{},{},{},{},{},{},{:.4f},{}".format(sketch_config.k,sketch_config.num_buckets,sketch_config.fp_size,
-        sketch_config.bucket_size,sketch_config.max_iter, filter_stats["items"], filter_stats["creation_time"],
-        filter_stats["load_factor"]))
+def print_stats(filter_stats, sketch_config, verbose=False):
+    if verbose:
+        print("k,buckets,fp_size,buck_size,iterations,items,constr_speed,load_factor, total_size_bytes, bits_per_item, false_positive_rate")
+    print("{},{},{},{},{},{},{:.4f},{},{},{},{}".format(sketch_config.k,sketch_config.num_buckets,sketch_config.fp_size,
+        sketch_config.bucket_size,sketch_config.max_iter, filter_stats["items"], filter_stats["constr_speed"],
+        filter_stats["load_factor"], filter_stats["total_size"], filter_stats["bpi"], filter_stats["fp_rate"]))
 
 def create_cuckoo_filter(sketch_config, filter_stats):
     global cuckooFilter
@@ -41,8 +43,10 @@ def create_cuckoo_filter(sketch_config, filter_stats):
                 items+=1
     end = time.time()
     filter_stats["items"] = items
-    filter_stats["creation_time"] = end-start
+    filter_stats["constr_speed"] = items / (end-start)
     filter_stats["load_factor"] = items / (sketch_config.num_buckets * sketch_config.bucket_size)
+    filter_stats["total_size"] = cuckooFilter.get_size()
+    filter_stats["bpi"] = (filter_stats["total_size"] / items) * 8
 
 
 def create_cuckoo_tree():
@@ -64,7 +68,7 @@ def cli(args, sketch_config, filter_stats):
     command = input("\nCLI: Please select \n 1) Create Cuckoo filter \n 2) Create Cuckoo tree \n 3) Query \n 4) Exit\n $$ ").strip()
     if command == "1":
         create_cuckoo_filter(sketch_config, filter_stats)
-        print_stats(filter_stats, sketch_config)
+        print_stats(filter_stats, sketch_config, args.verbose)
     elif command == "2":
         create_cuckoo_tree()
     elif command == "3":
@@ -93,26 +97,30 @@ def initiate(args):
     sketch_config = SketchConfig(args.b, args.f, args.s, args.i, args.k, args.stash)
     filter_stats = {
         "items" : 0,
-        "creation_time" : 0.0,
-        "load_factor": 0.0
+        "constr_speed" : 0.0,
+        "load_factor": 0.0,
+        "total_size": 0,
+        "bpi": 0,
+        "fp_rate" : 0
     }
     if args.interactive:
         cli(args, sketch_config, filter_stats)
     elif args.create_cuckoo_filter:
         create_cuckoo_filter(sketch_config, filter_stats)
-        print_stats(filter_stats, sketch_config)
+        print_stats(filter_stats, sketch_config, args.verbose)
 
 
 
 def arguments():
     usg = '''
         main.py [-h] [--datafiles DATAFILE1.FASTQ DATAFILE2.FASTQ ...] [--interactive | --create-cuckoo-filter] 
-            [-b buckets] [-f fp_size] [-s bucket_size] [-i iterations] [-k Kmer_size] [--stash STASH_SIZE]
+            [-b buckets] [-f fp_size] [-s bucket_size] [-i iterations] [-k Kmer_size] [--stash STASH_SIZE] [-v]
     '''
     parser = argparse.ArgumentParser(description='Cuckoo Filter Tree Implementation', usage=usg)
     parser.add_argument('--datafiles', dest='datafiles', nargs="+", required=True,
                         help='The input file to populate the data structures')
     parser.add_argument("--interactive", help="Start CLI after reading files", action='store_true')
+    parser.add_argument("-v", help="Verbose: Prints the labels for output stats.", dest="verbose", action='store_true')
     parser.add_argument("-k", help="k-mer size, omit to disable kmer processing.", default=0, type=int)
     parser.add_argument("-b", help="Number of buckets. Default=6500", default=6500, type=int)
     parser.add_argument("-f", help="Fingerprint size. Default=16", default=16, type=int)

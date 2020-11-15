@@ -112,7 +112,16 @@ class CuckooFilter:
             self.num_items_in_filter -= 1
             return self.filter[index_two].remove(fingerprint)
         return False
-
+    
+    def get_size(self):
+        return(
+            sys.getsizeof(self.num_buckets) +
+            sys.getsizeof(self.fp_size) +
+            sys.getsizeof(self.bucket_size) +
+            sys.getsizeof(self.max_iter) +
+            sys.getsizeof(self.filter) +
+            sys.getsizeof(self.num_items_in_filter)
+        )
 class CuckooFilterStash(CuckooFilter):
 
     def __init__(self, num_buckets, fp_size, bucket_size, max_iter, stash_size):
