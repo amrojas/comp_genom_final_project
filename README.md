@@ -4,8 +4,9 @@ Repository for Cuckoo Tree Final Project
 ## Usage 
 ```
 usage: 
-        main.py [-h] [--datafiles DATAFILE1.FASTQ DATAFILE2.FASTQ ...] [--interactive | --create-cuckoo-filter] 
-            [-b buckets] [-f fp_size] [-s bucket_size] [-i iterations] [-k Kmer_size]
+        main.py [-h] [--datafiles DATAFILE1.FASTQ DATAFILE2.FASTQ ...] [--interactive | --create-cuckoo-filter | --create-bloom-filter] 
+            [-b buckets] [-f fp_size] [-s bucket_size] [-i iterations] [-k Kmer_size] [-e expected_#_items] [-p false_positive_probability]
+            [--stash STASH_SIZE] [--auto] [-v]
     
 
 Cuckoo Filter Tree Implementation
@@ -15,14 +16,27 @@ optional arguments:
   --datafiles DATAFILES [DATAFILES ...]
                         The input file to populate the data structures
   --interactive         Start CLI after reading files
+  -v                    Verbose: Prints the labels for output stats.
   -k K                  k-mer size, omit to disable kmer processing.
-  -b B                  Number of buckets. Default=6500
-  -f F                  Fingerprint size. Default=16
-  -s S                  Bucket size. Default=64
-  -i I                  Max iterations befor insertion fails. Default=500
+  -b B                  CuckooFilter; Number of buckets. Default=6500
+  -f F                  CuckooFilter; Fingerprint size. Default=16
+  -s S                  CuckooFilter; Bucket size. Default=64
+  -i I                  CuckooFilter; Max iterations befor insertion fails.
+                        Default=500
+  -e E                  CuckooFilterAuto&BloomFilter; Expected number of
+                        items. Default=10000
+  -p P                  CuckooFilterAuto&BloomFilter; False positive
+                        probability. Default=0.001
+  --stash STASH         CuckooFilter; Stash size. Default=0
+  --auto                CuckooFilter; Automatically derive the fp_size,
+                        bucket_size and num of buckets from fp_probability and
+                        expected items.
   --create-cuckoo-filter
-                        Create the cuckoo filter, measure the creation time
-                        and load factor, then exit.
+                        Create the cuckoo filter, measure and report the
+                        statistics, then exit.
+  --create-bloom-filter
+                        Create the Bloom filter, measure and report the
+                        statistics, then exit.
 ```
 
 ## FASTQ Generator

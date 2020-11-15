@@ -2,6 +2,8 @@
 Description: Contains the basic implementation for a Bucket in Cuckoo Filter
 """
 import random
+import sys
+from sys import getsizeof
 
 class Bucket:
 
@@ -44,6 +46,9 @@ class Bucket:
         self.remove(chosen_fp)
         self.insert(fp_to_insert)
         return chosen_fp
+
+    def get_size(self):
+        return(sys.getsizeof(self.size) + sys.getsizeof(self.bucket))
 
 
     

@@ -1,3 +1,5 @@
 pytest>=5.4.2
 mmh3
 bitarray
+numpy
+matplotlib

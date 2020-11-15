@@ -115,13 +115,20 @@ class CuckooFilter:
         return False
     
     def get_size(self):
+        """
+        Returns the total number of bytes occupied by the filter object
+        """
+        agg = 0
+        for b in self.filter:
+            agg += b.get_size()
         return(
             sys.getsizeof(self.num_buckets) +
             sys.getsizeof(self.fp_size) +
             sys.getsizeof(self.bucket_size) +
             sys.getsizeof(self.max_iter) +
             sys.getsizeof(self.filter) +
-            sys.getsizeof(self.num_items_in_filter)
+            sys.getsizeof(self.num_items_in_filter) +
+            agg
         )
 class CuckooFilterStash(CuckooFilter):
 
@@ -138,7 +145,7 @@ class CuckooFilterStash(CuckooFilter):
     
     def insert(self, item):
         insert_result = super().insert(item)
-        print(insert_result)
+        # print(insert_result)
         if not insert_result and not self.stash.isFull():
             self.num_items_in_filter += 1
             return self.stash.insert(item)
@@ -155,6 +162,26 @@ class CuckooFilterStash(CuckooFilter):
             self.num_items_in_filter -= 1
             return self.stash.remove(fingerprint)
         return delete_result
+
+    def get_size(self):
+        """
+        Returns the total number of bytes occupied by the filter object
+        """
+        agg = 0
+        for b in self.filter:
+            agg += b.get_size()
+        return(
+            sys.getsizeof(self.num_buckets) +
+            sys.getsizeof(self.fp_size) +
+            sys.getsizeof(self.bucket_size) +
+            sys.getsizeof(self.max_iter) +
+            sys.getsizeof(self.filter) +
+            sys.getsizeof(self.num_items_in_filter) +
+            sys.getsizeof(self.stash_size) +
+            sys.getsizeof(self.stash) +
+            sys.getsizeof(self.total_capacity) +
+            agg
+        )
 
 class CuckooFilterAuto(CuckooFilter):
 
@@ -190,9 +217,28 @@ class CuckooFilterAuto(CuckooFilter):
         """
         Based on heuristics in paper (Fan et al, 2014)
         """
+        total_capacity = 0
         if bucket_size == 4:
             total_capacity = math.ceil(expected_num/0.95)
         elif bucket_size == 8:
             total_capacity = math.ceil(expected_num/0.98)
         num_buckets = math.ceil(total_capacity/bucket_size)
         return num_buckets
+
+    def get_size(self):
+        """
+        Returns the total number of bytes occupied by the filter object
+        """
+        agg = 0
+        for b in self.filter:
+            agg += b.get_size()
+        return(
+            sys.getsizeof(self.num_buckets) +
+            sys.getsizeof(self.fp_size) +
+            sys.getsizeof(self.bucket_size) +
+            sys.getsizeof(self.max_iter) +
+            sys.getsizeof(self.filter) +
+            sys.getsizeof(self.num_items_in_filter) + 
+            sys.getsizeof(self.fp_prob) + 
+            agg
+        )

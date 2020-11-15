@@ -4,6 +4,7 @@ Description: Contains the implementation for a Bloom Filter
 
 import mmh3
 import math
+import sys
 from bitarray import bitarray
 
 class BloomFilter:
@@ -58,3 +59,15 @@ class BloomFilter:
         """
         k = (self.size/self.expected_num) * math.log(2)
         return int(k)
+
+    def get_size(self):
+        """
+        Returns the total number of bytes occupied by the filter object
+        """
+        return(
+            sys.getsizeof(self.fp_prob) +
+            sys.getsizeof(self.expected_num) +
+            sys.getsizeof(self.size) +
+            sys.getsizeof(self.num_hashes) +
+            sys.getsizeof(self.filter)
+        )
