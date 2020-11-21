@@ -41,11 +41,19 @@ def test_construction_stash():
     assert cuckooFilterStash.total_capacity == 74
     assert cuckooFilterStash.stash_size == 64
 
-def test_construction_auto():
-    """ Ensures cuckooFilterAuto is constructed as expected """
-    cuckooFilterAuto = cuckoo_filter.CuckooFilterAuto(100000, 0.001)
-    assert cuckooFilterAuto.bucket_size == 4
-    assert cuckooFilterAuto.fp_size == 13
-    assert cuckooFilterAuto.num_buckets == 29762
-    assert cuckooFilterAuto.total_capacity == 119048
+
+def test_construction_bit():
+    test_cuckoo = cuckoo_filter.CuckooFilterBit(10, 4, 4, 500)
+    assert test_cuckoo.max_iter == 500
+    assert test_cuckoo.num_items_in_filter == 0
+    assert test_cuckoo.total_capacity == 40
+
+def test_bit_insert_contains_remove():
+    test_cuckoo = cuckoo_filter.CuckooFilterBit(10, 4, 4, 500)
+    assert test_cuckoo.insert("GCGTT") == True
+    assert test_cuckoo.contains("GCGTT") == True 
+
+    assert test_cuckoo.contains("GCGTTTTT") == False 
+    assert test_cuckoo.delete("GCGTT") == True 
+    assert test_cuckoo.contains("GCGTT") == False 
 
