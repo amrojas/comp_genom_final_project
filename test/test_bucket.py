@@ -22,8 +22,8 @@ def test_insert():
     test_bucket = bucket_classes.Bucket(num_entries)
     test_bucket.insert(0b1111)
     assert test_bucket.contains(0b1111) == True
-    assert test_bucket.insert(0b1111) == True
-    assert test_bucket.insert(0b1011) == False
+    assert test_bucket.insert(0b1111) == False
+    assert test_bucket.insert(0b1011) == True
 
 def test_bucket_full():
     """ Ensures that a bucket's isFull() works as expected """
