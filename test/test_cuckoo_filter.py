@@ -44,8 +44,8 @@ def test_construction_stash():
 def test_construction_auto():
     """ Ensures cuckooFilterAuto is constructed as expected """
     cuckooFilterAuto = cuckoo_filter.CuckooFilterAuto(100000, 0.001)
-    assert cuckooFilterAuto.bucket_size == 8
-    assert cuckooFilterAuto.fp_size == 14
-    assert cuckooFilterAuto.num_buckets == 12756
-    assert cuckooFilterAuto.total_capacity == 102048
+    assert cuckooFilterAuto.bucket_size == 4
+    assert cuckooFilterAuto.fp_size == 13
+    assert cuckooFilterAuto.num_buckets == 29762
+    assert cuckooFilterAuto.total_capacity == 119048
 
