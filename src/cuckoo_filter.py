@@ -199,13 +199,11 @@ class CuckooFilterAuto(CuckooFilter):
 
     def get_bucket_size(self, fp_prob):
         """
-        Based on heuristics in paper (Fan et al, 2014)
+        Figure 3 shows that bucket size of 4 is optimal across
+        *almost* all the different FPRs
         """
-        if fp_prob > 0.002:
-            return 4
-        else:
-            return 8
-    
+        return 4
+        
     def get_fingerprint_size(self, num_buckets, fp_prob, bucket_size):
         """
         Based on heuristics in paper (Fan et al, 2014)
@@ -219,9 +217,9 @@ class CuckooFilterAuto(CuckooFilter):
         """
         total_capacity = 0
         if bucket_size == 4:
-            total_capacity = math.ceil(expected_num/0.95)
+            total_capacity = math.ceil(expected_num/0.84)
         elif bucket_size == 8:
-            total_capacity = math.ceil(expected_num/0.98)
+            total_capacity = math.ceil(expected_num/0.95)
         num_buckets = math.ceil(total_capacity/bucket_size)
         return num_buckets
 
