@@ -28,10 +28,10 @@ class Bucket:
     
     def insert(self, fp):
         """ 
-            Important point is that we do not allow duplicate items, which are allowed as
+            Important point is that we allow duplicate items, which are allowed as
             described in Fan et. al (2014)
         """ 
-        if not self.isFull() and fp not in self.bucket:
+        if not self.isFull():
             self.bucket.append(fp)
             return True
         return False
@@ -116,10 +116,6 @@ class bitBucketArray:
     
     def insert(self, bucket_num, fp):
         if not self.isFull(bucket_num):
-
-            #Don't allow duplicates in same bucket
-            if self.contains(bucket_num, fp):
-                return False
 
             binary_str = bitBucketArray.get_binary_string(self.fp_size, fp)
             
