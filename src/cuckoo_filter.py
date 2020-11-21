@@ -6,6 +6,8 @@ import hashlib
 import sys
 import random
 import math
+from bitarray import bitarray
+
 
 class CuckooFilter:
 
@@ -130,6 +132,7 @@ class CuckooFilter:
             sys.getsizeof(self.num_items_in_filter) +
             agg
         )
+
 class CuckooFilterStash(CuckooFilter):
 
     def __init__(self, num_buckets, fp_size, bucket_size, max_iter, stash_size):
@@ -183,60 +186,124 @@ class CuckooFilterStash(CuckooFilter):
             agg
         )
 
-class CuckooFilterAuto(CuckooFilter):
+class CuckooFilterBit:
 
-    def __init__(self, expected_num, fp_prob):
+    def __init__(self, num_buckets, fp_size, bucket_size, max_iter):
         """
-        Creates a Cuckoo Filter with given false positive probability and expected 
-        number of items to be inserted. Then, parameters of filter are calculated
-        to fit that case.
-        """
-        bucket_size = self.get_bucket_size(fp_prob)
-        fp_size = self.get_fingerprint_size(expected_num, fp_prob, bucket_size)
-        num_buckets = self.get_num_of_buckets(expected_num, bucket_size)
-        super().__init__(num_buckets, fp_size, bucket_size, max_iter=500)
-        self.fp_prob = fp_prob
+        Creates a Cuckoo Filter implemented with Python bitarrays.
 
-    def get_bucket_size(self, fp_prob):
+            filter --> bitBucketArray object, basically a bitarray with insert, contains, remove ops for specific buckets
+            max_iter --> maximum number of displacements before giving up on that item
         """
-        Figure 3 shows that bucket size of 4 is optimal across
-        *almost* all the different FPRs
-        """
-        return 4
-        
-    def get_fingerprint_size(self, num_buckets, fp_prob, bucket_size):
-        """
-        Based on heuristics in paper (Fan et al, 2014)
-        """
-        fp_size = math.ceil(math.log((1/fp_prob), 2) + math.log(2*bucket_size, 2))
-        return fp_size
+        self.filter = bucket_classes.bitBucketArray(num_buckets, bucket_size, fp_size)
+        self.max_iter = max_iter
+        self.num_items_in_filter = 0
+        self.total_capacity = bucket_size * num_buckets
+
+    def get_fp_and_index_positions(self, item):
+        fingerprint = CuckooFilter.get_fingerprint(item, self.filter.fp_size)
+
+        hash_x = CuckooFilter.get_hash_value(item)
+        hash_fp = CuckooFilter.get_hash_value(fingerprint)
+
+        index_one = hash_x % self.filter.num_buckets
+        index_two = (index_one ^ hash_fp) % self.filter.num_buckets
+
+        return [fingerprint, index_one, index_two]
     
-    def get_num_of_buckets(self, expected_num, bucket_size):
-        """
-        Based on heuristics in paper (Fan et al, 2014)
-        """
-        total_capacity = 0
-        if bucket_size == 4:
-            total_capacity = math.ceil(expected_num/0.84)
-        elif bucket_size == 8:
-            total_capacity = math.ceil(expected_num/0.95)
-        num_buckets = math.ceil(total_capacity/bucket_size)
-        return num_buckets
+    def insert(self, item):
+
+        fingerprint, index_one, index_two = self.get_fp_and_index_positions(item)
+
+        #Try to insert into one of those two buckets
+        if not self.filter.isFull(index_one):
+            self.filter.insert(index_one, fingerprint)
+            self.num_items_in_filter += 1
+            return True
+        elif not self.filter.isFull(index_two):
+            self.filter.insert(index_two, fingerprint)
+            self.num_items_in_filter += 1
+            return True
+
+        #Try to relocate some of the items in bucket
+        index = random.choice([index_one, index_two])
+        for n in range(0, self.max_iter):
+            fingerprint = self.filter.swap_with_random_entry(index, fingerprint)
+
+            hash_fp = CuckooFilter.get_hash_value(fingerprint)
+            index = (index ^ hash_fp) % self.filter.num_buckets
+
+            if not self.filter.isFull(index):
+                self.filter.insert(index, fingerprint)
+                self.num_items_in_filter += 1
+                return True
+
+        #We have failed to insert, filter is full
+        return False
+    
+    def contains(self, item):
+        fingerprint, index_one, index_two = self.get_fp_and_index_positions(item)
+
+        if self.filter.contains(index_one, fingerprint) or self.filter.contains(index_two, fingerprint):
+            return True
+        return False
+
+    def delete(self, item):
+        fingerprint, index_one, index_two = self.get_fp_and_index_positions(item)
+
+        if self.filter.contains(index_one, fingerprint):
+            self.num_items_in_filter -= 1
+            return self.filter.remove(index_one, fingerprint)
+        elif self.filter.contains(index_two, fingerprint):
+            self.num_items_in_filter -= 1
+            return self.filter.remove(index_two, fingerprint)
+        return False
 
     def get_size(self):
         """
-        Returns the total number of bytes occupied by the filter object
+        Returns the total number of bytes occupied by CuckooFilterBit
         """
-        agg = 0
-        for b in self.filter:
-            agg += b.get_size()
-        return(
-            sys.getsizeof(self.num_buckets) +
-            sys.getsizeof(self.fp_size) +
-            sys.getsizeof(self.bucket_size) +
-            sys.getsizeof(self.max_iter) +
-            sys.getsizeof(self.filter) +
-            sys.getsizeof(self.num_items_in_filter) + 
-            sys.getsizeof(self.fp_prob) + 
-            agg
-        )
+        return (sys.getsizeof(self.max_iter) + 
+                sys.getsizeof(self.num_items_in_filter) + 
+                sys.getsizeof(self.total_capacity) +
+                self.filter.get_size())
+    
+
+"""
+The following methods are helper methods that allow you get cuckoo
+filter parameters that for a desired false positive rate to perform
+some of our benchmarks.
+"""
+
+def get_cuckoo_filter_params(expected_num, fp_prob):
+    bucket_size = get_bucket_size(fp_prob)
+    fp_size = get_fingerprint_size(expected_num, fp_prob, bucket_size)
+    num_buckets = get_num_of_buckets(expected_num, bucket_size)
+    
+    return [num_buckets, fp_size, bucket_size]
+
+def get_bucket_size(fp_prob):
+    """
+    Figure 3 shows that bucket size of 4 is optimal across
+    *almost* all the different FPRs
+    """
+    return 4
+
+def get_fingerprint_size(num_buckets, fp_prob, bucket_size):
+    """
+    Based on heuristics in paper (Fan et al, 2014)
+    """
+    fp_size = math.ceil(math.log((1/fp_prob), 2) + math.log(2*bucket_size, 2))
+    return fp_size
+    
+def get_num_of_buckets(expected_num, bucket_size):
+    """
+    Based on heuristics in paper (Fan et al, 2014)
+    """
+    total_capacity = 0
+    if bucket_size == 4:
+        total_capacity = math.ceil(expected_num/0.84)
+    elif bucket_size == 8:
+        total_capacity = math.ceil(expected_num/0.95)
+    num_buckets = math.ceil(total_capacity/bucket_size)
+    return num_buckets
