@@ -27,10 +27,10 @@ class Bucket:
     
     def insert(self, fp):
         """ 
-            Important point is that duplicate items are allowed as
+            Important point is that we do not allow duplicate items, which are allowed as
             described in Fan et. al (2014)
         """ 
-        if not self.isFull():
+        if not self.isFull() and fp not in self.bucket:
             self.bucket.append(fp)
             return True
         return False
