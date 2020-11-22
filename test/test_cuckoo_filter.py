@@ -57,3 +57,14 @@ def test_bit_insert_contains_remove():
     assert test_cuckoo.delete("GCGTT") == True 
     assert test_cuckoo.contains("GCGTT") == False 
 
+def test_cuckoo_insert_no_duplicates():
+    """ Ensures the cuckoo filter can insert items we should be able to, when using insert_no_duplicates"""
+    cuckooFilter = cuckoo_filter.CuckooFilter(10, 8, 2, 500)
+    assert cuckooFilter.insert_no_duplicates("GCGTTT") == True
+    assert cuckooFilter.insert_no_duplicates("GCGTTT") == False 
+
+def test_cuckoobit_insert_no_duplicates():
+    """ Ensures the cuckoo filter can insert items we should be able to, when using insert_no_duplicates"""
+    cuckooFilter = cuckoo_filter.CuckooFilterBit(10, 8, 2, 500)
+    assert cuckooFilter.insert_no_duplicates("GCGTTT") == True
+    assert cuckooFilter.insert_no_duplicates("GCGTTT") == False 
