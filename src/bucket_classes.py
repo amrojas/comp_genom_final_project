@@ -35,7 +35,16 @@ class Bucket:
             self.bucket.append(fp)
             return True
         return False
-    
+
+    def insert_no_duplicates(self, fp):
+        """ 
+            This method does not insert items that are already in the bucket
+        """ 
+        if not self.isFull() and fp not in self.bucket:
+            self.bucket.append(fp)
+            return True
+        return False
+
     def remove(self, fp):
         if fp in self.bucket:
             self.bucket.remove(fp)
@@ -85,7 +94,7 @@ class bitBucketArray:
             else:
                 bit_str += "0"
             
-            if (bit_pos+1) % 4 == 0: #Check if fingerprint matches
+            if (bit_pos+1) % self.fp_size == 0: #Check if fingerprint matches
                 curr_fp = int(bit_str, 2)
                 if curr_fp == fp:
                     return entry_pos
@@ -107,7 +116,7 @@ class bitBucketArray:
             else:
                 bit_str += "0"
             
-            if (bit_pos+1) % 4 == 0: #Check if fingerprint matches
+            if (bit_pos+1) % self.fp_size == 0: #Check if fingerprint matches
                 curr_fp = int(bit_str, 2)
                 if curr_fp == fp:
                     return True
@@ -132,6 +141,28 @@ class bitBucketArray:
             return True
 
         return False
+    
+    def insert_no_duplicates(self, bucket_num, fp):
+        if not self.isFull(bucket_num):
+
+            if self.contains(bucket_num, fp): #Checks for duplicates
+                return False
+
+            binary_str = bitBucketArray.get_binary_string(self.fp_size, fp)
+            
+            start_pos = (bucket_num * self.fp_size * self.num_entries) + (self.curr_entries_per_bucket[bucket_num] * self.fp_size)
+            end_pos = (bucket_num * self.fp_size * self.num_entries) + ((self.curr_entries_per_bucket[bucket_num]+1) * self.fp_size)
+
+            for pos in range(start_pos, end_pos): #Place fp in that bucket
+                if binary_str[pos - start_pos] == "1":
+                    self.filter[pos] = True
+                else:
+                    self.filter[pos] = False
+            
+            self.curr_entries_per_bucket[bucket_num] += 1
+            return True
+
+        return False    
     
     def remove(self, bucket_num, fp):
 
@@ -190,7 +221,7 @@ class bitBucketArray:
             else:
                 bit_str += "0"
             
-            if (pos+1) % 4 == 0: #Check if fingerprint matches
+            if (pos+1) % self.fp_size == 0: #Check if fingerprint matches
                 bucket_list.append(bit_str)
                 bit_str = ""
         
