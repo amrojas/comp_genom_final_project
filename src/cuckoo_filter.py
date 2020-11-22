@@ -98,6 +98,46 @@ class CuckooFilter:
         #We have failed to insert, filter is full
         return False
 
+    def insert_no_duplicates(self, item):
+        """
+            This version of the insert method will not insert fingerprints into 
+            buckets where there is a duplicate of it.
+        """
+
+        fingerprint, index_one, index_two = self.get_fp_and_index_positions(item)
+
+        #Try to insert into one of those two buckets
+        if not self.filter[index_one].isFull():
+            result = self.filter[index_one].insert_no_duplicates(fingerprint)
+            if result:
+                self.num_items_in_filter += 1
+                return True
+            return False
+        elif not self.filter[index_two].isFull():
+            result = self.filter[index_two].insert_no_duplicates(fingerprint)
+            if result:
+                self.num_items_in_filter += 1
+                return True
+            return False
+
+        #Try to relocate some of the items in bucket
+        index = random.choice([index_one, index_two])
+        for n in range(0, self.max_iter):
+            fingerprint = self.filter[index].swap_with_random_entry(fingerprint)
+
+            hash_fp = CuckooFilter.get_hash_value(fingerprint)
+            index = (index ^ hash_fp) % self.num_buckets
+
+            if not self.filter[index].isFull():
+                result = self.filter[index].insert_no_duplicates(fingerprint)
+                if result:
+                    self.num_items_in_filter += 1
+                    return True
+                return False
+
+        #We have failed to insert, filter is full
+        return False
+
     def contains(self, item):
         fingerprint, index_one, index_two = self.get_fp_and_index_positions(item)
 
@@ -148,12 +188,18 @@ class CuckooFilterStash(CuckooFilter):
     
     def insert(self, item):
         insert_result = super().insert(item)
-        # print(insert_result)
         if not insert_result and not self.stash.isFull():
             self.num_items_in_filter += 1
             return self.stash.insert(item)
         return insert_result
-    
+
+    def insert(self, item):
+        insert_result = super().insert_no_duplicates(item)
+        if not insert_result and not self.stash.isFull():
+            self.num_items_in_filter += 1
+            return self.stash.insert_no_duplicates(item)
+        return insert_result
+
     def contains(self, item):
         fingerprint, index_one, index_two = super().get_fp_and_index_positions(item)
         return (super.contains(item) or self.stash.contains(fingerprint))
@@ -240,7 +286,43 @@ class CuckooFilterBit:
 
         #We have failed to insert, filter is full
         return False
-    
+
+    def insert_no_duplicates(self, item):
+
+        fingerprint, index_one, index_two = self.get_fp_and_index_positions(item)
+
+        #Try to insert into one of those two buckets
+        if not self.filter.isFull(index_one):
+            result = self.filter.insert_no_duplicates(index_one, fingerprint)
+            if result:
+                self.num_items_in_filter += 1
+                return True
+            return False
+        elif not self.filter.isFull(index_two):
+            result = self.filter.insert_no_duplicates(index_two, fingerprint)
+            if result:
+                self.num_items_in_filter += 1
+                return True
+            return False
+
+        #Try to relocate some of the items in bucket
+        index = random.choice([index_one, index_two])
+        for n in range(0, self.max_iter):
+            fingerprint = self.filter.swap_with_random_entry(index, fingerprint)
+
+            hash_fp = CuckooFilter.get_hash_value(fingerprint)
+            index = (index ^ hash_fp) % self.filter.num_buckets
+
+            if not self.filter.isFull(index):
+                result = self.filter.insert_no_duplicates(index, fingerprint)
+                if result:
+                    self.num_items_in_filter += 1
+                    return True
+                return False
+
+        #We have failed to insert, filter is full
+        return False   
+ 
     def contains(self, item):
         fingerprint, index_one, index_two = self.get_fp_and_index_positions(item)
 
