@@ -82,3 +82,19 @@ def test_bucketarray_insert_and_contains():
     assert test_bucketarray.contains(3, 0b1011) == False 
     assert test_bucketarray.contains(3, 0b0011) == True
 
+def test_bucket_insert_no_duplicates():
+    num_entries = 2
+    test_bucket = bucket_classes.Bucket(num_entries)
+    assert test_bucket.insert_no_duplicates(0b1111) == True
+    assert test_bucket.contains(0b1111) == True
+    
+    assert test_bucket.insert_no_duplicates(0b1111) == False
+    assert test_bucket.insert_no_duplicates(0b1011) == True
+
+def test_bucketarray_insert_no_duplicates():
+    test_bucketarray = bucket_classes.bitBucketArray(10, 2, 4)
+    assert test_bucketarray.insert_no_duplicates(3, 0b0011) == True
+    assert test_bucketarray.insert_no_duplicates(3, 0b0011) == False 
+
+    assert test_bucketarray.insert_no_duplicates(3, 0b1111) == True 
+    assert test_bucketarray.insert_no_duplicates(3, 0b1100) == False
