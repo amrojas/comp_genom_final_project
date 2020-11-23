@@ -68,6 +68,11 @@ def test_cuckoo_insert_no_duplicates_full_bucket():
     assert cuckooFilter.insert_no_duplicates('ABC')
     assert not cuckooFilter.insert_no_duplicates('ABC')
 
+def test_cuckooBit_insert_no_duplicates_full_bucket():
+    cuckooFilter = cuckoo_filter.CuckooFilterBit(10, 8, 1, 500)
+    assert cuckooFilter.insert_no_duplicates('ABC')
+    assert not cuckooFilter.insert_no_duplicates('ABC')
+
 def test_cuckoobit_insert_no_duplicates():
     """ Ensures the cuckoo filter can insert items we should be able to, when using insert_no_duplicates"""
     cuckooFilter = cuckoo_filter.CuckooFilterBit(10, 8, 2, 500)
