@@ -13,7 +13,7 @@ class Read:
         self.quality = quality
 
     def kmers(self, k: int):
-        for i in range(len(self.line) - k):
+        for i in range(len(self.line) - k + 1):
             yield self.line[i:i+k]
 
     def __repr__(self) -> str:
