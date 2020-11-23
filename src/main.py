@@ -75,7 +75,7 @@ def create_cuckoo_filter(sketch_config, filter_stats):
     end = time.time()
     filter_stats["items"] = items
     filter_stats["constr_speed"] = items / (end-start)
-    filter_stats["load_factor"] = items / (sketch_config.num_buckets * sketch_config.bucket_size)
+    filter_stats["load_factor"] = items / (cuckooFilter.num_buckets * cuckooFilter.bucket_size)
     filter_stats["total_size"] = cuckooFilter.get_size()
     filter_stats["bpi"] = (filter_stats["total_size"] / items) * 8
 
