@@ -41,11 +41,40 @@ def test_construction_stash():
     assert cuckooFilterStash.total_capacity == 74
     assert cuckooFilterStash.stash_size == 64
 
-def test_construction_auto():
-    """ Ensures cuckooFilterAuto is constructed as expected """
-    cuckooFilterAuto = cuckoo_filter.CuckooFilterAuto(100000, 0.001)
-    assert cuckooFilterAuto.bucket_size == 8
-    assert cuckooFilterAuto.fp_size == 14
-    assert cuckooFilterAuto.num_buckets == 12756
-    assert cuckooFilterAuto.total_capacity == 102048
 
+def test_construction_bit():
+    test_cuckoo = cuckoo_filter.CuckooFilterBit(10, 4, 4, 500)
+    assert test_cuckoo.max_iter == 500
+    assert test_cuckoo.num_items_in_filter == 0
+    assert test_cuckoo.total_capacity == 40
+
+def test_bit_insert_contains_remove():
+    test_cuckoo = cuckoo_filter.CuckooFilterBit(10, 4, 4, 500)
+    assert test_cuckoo.insert("GCGTT") == True
+    assert test_cuckoo.contains("GCGTT") == True 
+
+    assert test_cuckoo.contains("GCGTTTTT") == False 
+    assert test_cuckoo.delete("GCGTT") == True 
+    assert test_cuckoo.contains("GCGTT") == False 
+
+def test_cuckoo_insert_no_duplicates():
+    """ Ensures the cuckoo filter can insert items we should be able to, when using insert_no_duplicates"""
+    cuckooFilter = cuckoo_filter.CuckooFilter(10, 8, 2, 500)
+    assert cuckooFilter.insert_no_duplicates("GCGTTT") == True
+    assert cuckooFilter.insert_no_duplicates("GCGTTT") == False
+
+def test_cuckoo_insert_no_duplicates_full_bucket():
+    cuckooFilter = cuckoo_filter.CuckooFilter(10, 8, 1, 500)
+    assert cuckooFilter.insert_no_duplicates('ABC')
+    assert not cuckooFilter.insert_no_duplicates('ABC')
+
+def test_cuckooBit_insert_no_duplicates_full_bucket():
+    cuckooFilter = cuckoo_filter.CuckooFilterBit(10, 8, 1, 500)
+    assert cuckooFilter.insert_no_duplicates('ABC')
+    assert not cuckooFilter.insert_no_duplicates('ABC')
+
+def test_cuckoobit_insert_no_duplicates():
+    """ Ensures the cuckoo filter can insert items we should be able to, when using insert_no_duplicates"""
+    cuckooFilter = cuckoo_filter.CuckooFilterBit(10, 8, 2, 500)
+    assert cuckooFilter.insert_no_duplicates("GCGTTT") == True
+    assert cuckooFilter.insert_no_duplicates("GCGTTT") == False 

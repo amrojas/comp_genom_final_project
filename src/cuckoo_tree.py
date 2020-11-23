@@ -2,6 +2,7 @@ from typing import List, Optional, Deque
 from cuckoo_filter import CuckooFilter
 from collections import deque
 from read import Read
+from copy import deepcopy
 
 
 class CuckooTree:
@@ -49,40 +50,46 @@ class CuckooTree:
                 new_parent = Node(self.k, self.num_buckets, self.fp_size, self.bucket_size, self.max_iter)
                 new_parent.parent = parent
 
-                # todo: insert kmers from current and node_to_insert into new parent
+                # Kmers from existing and new leaf
+                new_parent.filter = deepcopy(current.filter)
+                new_parent.insert_kmers_from_read(read)
 
+                # Set appropriate parent/child pointers
                 current.parent = new_parent
                 node_to_insert.parent = new_parent
-
                 new_parent.children.append(current)
                 new_parent.children.append(node_to_insert)
+
+                # Special case where root is a leaf
                 if parent is None:
                     # current is root -> new_parent is now root
                     self.root = new_parent
                     return
-                else:
-                    # Set new_parent as child of old parent
-                    idx = parent.children.index(current)
-                    parent.children[idx] = new_parent
-                    return
+
+                # Set new_parent as child of old parent
+                idx = parent.children.index(current)
+                parent.children[idx] = new_parent
+                return
             elif current.num_children() == 1:
-                # todo: add kmers to current
+                # insert kmers
+                current.insert_kmers_from_read(read)
+
+                # we found an empty slot to insert into
                 current.children.append(node_to_insert)
                 return
             elif current.num_children() == 2:
-                """
-                TODO: how are we going to
-                decide which side to go into
-                In the paper it is just
-                based on the bloom filter
-                similarity, but we don't have that
-                same property.
-                We may have to try out some different stuff here.
-                My first thought
-                """
-                # todo: add kmers to current
+                # insert kmers
+                current.insert_kmers_from_read(read)
+
+                # select "best" child
+                score_0 = current.children[0].score(read)
+                score_1 = current.children[1].score(read)
+                best_child = 0 if score_0 < score_1 else 1
+
+                # recur
                 parent = current
-                current = current.children[0]
+                current = current.children[best_child]
+
         raise Exception("Did not insert successfully!")
 
     def query(self, query: str) -> List[str]:
@@ -104,7 +111,7 @@ class CuckooTree:
                 if current.filter.contains(kmer):
                     total_kmers_found += 1
                 total_kmers += 1
-            if total_kmers_found > self.theta * total_kmers:
+            if total_kmers_found >= self.theta * total_kmers:
                 for child in current.children:
                     nodes_to_explore.append(child)
                 if current.num_children() == 0:
@@ -128,13 +135,28 @@ class Node:
 
     def populate_read_info(self, read: Read) -> None:
         self.read_id = read.id
+        self.insert_kmers_from_read(read)
+
+    def insert_kmers_from_read(self, read: Read) -> None:
         for kmer in read.kmers(self.k):
-            self.filter.insert(kmer)
+            self.filter.insert_no_duplicates(kmer)
 
     def num_children(self) -> int:
         return len(self.children)
 
+    def score(self, read: Read) -> int:
+        """
+        "Hamming distance" score where lower is better
+        :param read: The read to compare against
+        :return:
+        """
+        kmers_in_common = 0
+        for kmer in read.kmers(self.k):
+            if self.filter.contains(kmer):
+                kmers_in_common += 1
+        return self.filter.num_items_in_filter - kmers_in_common
+
 
 def kmers_in_string(string: str, k):
-    for i in range(len(string) - k):
+    for i in range(len(string) - k + 1):
         yield string[i:i + k]
