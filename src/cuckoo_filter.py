@@ -72,6 +72,9 @@ class CuckooFilter:
 
         fingerprint, index_one, index_two = self.get_fp_and_index_positions(item)
 
+        # TODO: found bug when inserting duplicate
+        # if inserting a duplicate fingerprint but first bucket
+        # is full, then duplicate will be inserted in second bucket
         #Try to insert into one of those two buckets
         if not self.filter[index_one].isFull():
             self.filter[index_one].insert(fingerprint)

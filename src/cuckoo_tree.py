@@ -66,9 +66,6 @@ class CuckooTree:
                     self.root = new_parent
                     return
 
-                print(parent.read_id)
-                print(current.read_id)
-
                 # Set new_parent as child of old parent
                 idx = parent.children.index(current)
                 parent.children[idx] = new_parent
