@@ -72,9 +72,6 @@ class CuckooFilter:
 
         fingerprint, index_one, index_two = self.get_fp_and_index_positions(item)
 
-        # TODO: found bug when inserting duplicate
-        # if inserting a duplicate fingerprint but first bucket
-        # is full, then duplicate will be inserted in second bucket
         #Try to insert into one of those two buckets
         if not self.filter[index_one].isFull():
             self.filter[index_one].insert(fingerprint)
@@ -108,6 +105,10 @@ class CuckooFilter:
         """
 
         fingerprint, index_one, index_two = self.get_fp_and_index_positions(item)
+
+        #If either bucket already contains fingerprint, than return false
+        if self.filter[index_one].contains(fingerprint) or self.filter[index_two].contains(fingerprint):
+            return False
 
         #Try to insert into one of those two buckets
         if not self.filter[index_one].isFull():
@@ -196,7 +197,7 @@ class CuckooFilterStash(CuckooFilter):
             return self.stash.insert(item)
         return insert_result
 
-    def insert(self, item):
+    def insert_no_duplicates(self, item):
         insert_result = super().insert_no_duplicates(item)
         if not insert_result and not self.stash.isFull():
             self.num_items_in_filter += 1
@@ -293,6 +294,10 @@ class CuckooFilterBit:
     def insert_no_duplicates(self, item):
 
         fingerprint, index_one, index_two = self.get_fp_and_index_positions(item)
+
+        #If either bucket already contains fingerprint, than return false
+        if self.filter.contains(index_one, fingerprint) or self.filter.contains(index_two, fingerprint):
+            return False
 
         #Try to insert into one of those two buckets
         if not self.filter.isFull(index_one):
