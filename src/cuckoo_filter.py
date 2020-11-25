@@ -248,6 +248,8 @@ class CuckooFilterBit:
         self.filter = bucket_classes.bitBucketArray(num_buckets, bucket_size, fp_size)
         self.max_iter = max_iter
         self.num_items_in_filter = 0
+        self.num_buckets = num_buckets
+        self.bucket_size = bucket_size
         self.total_capacity = bucket_size * num_buckets
 
     def get_fp_and_index_positions(self, item):
