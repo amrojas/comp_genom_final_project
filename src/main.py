@@ -6,6 +6,7 @@ import cuckoo_filter
 import bloom_filter
 import bloom_tree
 import cuckoo_tree
+import cuckoo_bit_tree
 from read import Read
 from config import *
 
@@ -150,7 +151,7 @@ def create_cuckoo_tree(sketch_config, filter_stats):
     # print("Creating the sketch. This might take a while ...")
     sketch_config.num_buckets, sketch_config.fp_size, sketch_config.bucket_size = cuckoo_filter.get_cuckoo_filter_params(sketch_config.expected_items,
             sketch_config.fp_prob)
-    cuckooFilter = cuckoo_tree.CuckooTree(sketch_config.theta, sketch_config.k, sketch_config.num_buckets, sketch_config.fp_size, 
+    cuckooFilter = cuckoo_bit_tree.CuckooBitTree(sketch_config.theta, sketch_config.k, sketch_config.num_buckets, sketch_config.fp_size, 
             sketch_config.bucket_size, sketch_config.max_iter)
     items = 0
     load_factor_step_size = (cuckooFilter.num_buckets * cuckooFilter.bucket_size) / 10
@@ -190,6 +191,7 @@ def perform_fp_query(query_file, filter_stats, filter):
     line_ptr = 0.0
     positives = 0.0
     with open(query_file, "r") as f:
+        start = time.time()
         while True:
             read_id = f.readline()[1:-1]
             if read_id == "":
@@ -202,10 +204,34 @@ def perform_fp_query(query_file, filter_stats, filter):
             line_ptr+=1
             if line_ptr == 100000:
                 break
+        end = time.time()
     if line_ptr == 0.0:
         print("WARNING! empty query file!")
         return
     filter_stats["fp_rate"] = positives/line_ptr
+
+def perform_query_throughput_measurements(query_file, filter_stats, filter):
+    line_ptr = 0.0
+    positives = 0.0
+    with open(query_file, "r") as f:
+        start = time.time()
+        while True:
+            read_id = f.readline()[1:-1]
+            if read_id == "":
+                break
+            read_line = f.readline().strip()
+            temp = f.readline()
+            read_quality = f.readline()
+            if filter.contains(read_line):
+                positives+=1
+            line_ptr+=1
+            if line_ptr == 100000:
+                break
+        end = time.time()
+    if line_ptr == 0.0:
+        print("WARNING! empty query file!")
+        return
+    filter_stats["query_throughput"] = line_ptr/(end-start)
 
 def cli(args, sketch_config, filter_stats):
     command = input("\nCLI: Please select \n 1) Create Cuckoo filter \n 2) Create Bloom filter \n 3) Create Cuckoo tree \n 4) Query \n 5) Create Cuckoo filter BitArray Variant 6) Exit\n $$ ").strip()
@@ -253,6 +279,7 @@ def initiate(args):
         "total_size": 0,
         "bpi": 0,
         "fp_rate" : 0,
+        "query_throughput" : 0,
         "insertion_tput": []
     }
     filter = None
@@ -276,6 +303,9 @@ def initiate(args):
         filter = cuckooFilter
     if args.fp_query:
         perform_fp_query(args.q, filter_stats, filter)
+    if args.query_tput:
+        perform_query_throughput_measurements(args.q, filter_stats, filter)
+        print("Query Throuput : {}".format(filter_stats["query_throughput"]))
     if args.insert_tput:
         print("Insertion Throuput at 0.1 increments of load factor: ", end=" ")
         for item in filter_stats["insertion_tput"]:
@@ -287,7 +317,7 @@ def initiate(args):
 def arguments():
     usg = '''
         main.py [-h] [--datafiles DATAFILE1.FASTQ DATAFILE2.FASTQ ...] [--interactive | --create-cuckoo-filter | --create-cuckoo-filter-bit |
-            --create-bloom-filter | --create-bloom-tree | --create-cuckoo-tree] [-q QUERY_FILE] [--fp-query]
+            --create-bloom-filter | --create-bloom-tree | --create-cuckoo-tree] [-q QUERY_FILE] [--fp-query] [--query-tput]
             [-b buckets] [-f fp_size] [-s bucket_size] [-i iterations] [-k Kmer_size] [-e expected_#_items] [-p false_positive_probability]
             [--stash STASH_SIZE] [--auto] [-v]
     '''
@@ -313,6 +343,7 @@ def arguments():
     parser.add_argument("--create-bloom-tree", help="Create the Bloom tree, measure and report the statistics, then exit.", action='store_true')
     parser.add_argument("--create-cuckoo-tree", help="Create the Bloom cuckoo, measure and report the statistics, then exit.", action='store_true')
     parser.add_argument("--fp-query", help="Perform false positive queries after creating the sketch, report FP rate then exit.", action='store_true')
+    parser.add_argument("--query-tput", help="Perform queries after creating the sketch, report query throughput then exit.", action='store_true')
     parser.add_argument("--insert-tput", help="Perform insertion throughput measurements.", action='store_true')
 
     args = parser.parse_args()

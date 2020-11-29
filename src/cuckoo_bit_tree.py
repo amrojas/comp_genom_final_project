@@ -3,6 +3,7 @@ from cuckoo_filter import CuckooFilterBit
 from collections import deque
 from read import Read
 from copy import deepcopy
+import sys
 
 
 class CuckooBitTree:
@@ -24,6 +25,8 @@ class CuckooBitTree:
         self.fp_size = fp_size
         self.bucket_size = bucket_size
         self.max_iter = max_iter
+        self.aggregate_size = self.get_insternal_size()
+
 
     def insert(self, read: Read) -> None:
         """
@@ -33,6 +36,7 @@ class CuckooBitTree:
         """
         node_to_insert = Node(self.k, self.num_buckets, self.fp_size, self.bucket_size, self.max_iter)
         node_to_insert.populate_read_info(read)
+        self.aggregate_size += node_to_insert.get_size()
 
         if self.root is None:
             self.root = node_to_insert
@@ -48,6 +52,7 @@ class CuckooBitTree:
                 and current as children
                 """
                 new_parent = Node(self.k, self.num_buckets, self.fp_size, self.bucket_size, self.max_iter)
+                self.aggregate_size += new_parent.get_size()
                 new_parent.parent = parent
 
                 # Kmers from existing and new leaf
@@ -118,6 +123,25 @@ class CuckooBitTree:
                     out.append(current.read_id)
         return out
 
+    def contains(self, query):
+        """
+        A wrapper for backward comptibility with other data structure implementations
+        """
+        return self.query(query)
+    
+    def get_insternal_size(self):
+        """
+        Returns the total number of bytes occupied by the filter object
+        """
+        return(
+            sys.getsizeof(self.theta) +
+            sys.getsizeof(self.num_buckets) +
+            sys.getsizeof(self.k) + 
+            sys.getsizeof(self.fp_size) + 
+            sys.getsizeof(self.max_iter) + 
+            sys.getsizeof(self.bucket_size)
+        )
+
 
 class Node:
 
@@ -155,6 +179,18 @@ class Node:
             if self.filter.contains(kmer):
                 kmers_in_common += 1
         return self.filter.num_items_in_filter - kmers_in_common
+    
+    def get_size(self):
+        """
+        Returns the total number of bytes occupied by the filter object
+        """
+        return(
+            sys.getsizeof(self.children) +
+            sys.getsizeof(self.parent) +
+            sys.getsizeof(self.read_id) +
+            sys.getsizeof(self.k) +
+            self.filter.get_size()
+        )
 
 
 def kmers_in_string(string: str, k):
