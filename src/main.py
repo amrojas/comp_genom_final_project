@@ -1,9 +1,11 @@
 import argparse
-import cuckoo_filter
-import bloom_filter
 import time
 from sys import getsizeof
 
+import cuckoo_filter
+import bloom_filter
+import bloom_tree
+import cuckoo_tree
 from read import Read
 from config import *
 
@@ -51,6 +53,7 @@ def create_bloom_filter(sketch_config, filter_stats):
                     insertion_tput_records.append(load_factor_step_size/(time.time() - t1))
                     step +=1
                     t1 = time.time()
+            r+=1
     end = time.time()
     filter_stats["items"] = items
     filter_stats["constr_speed"] = items / (end-start)
@@ -104,6 +107,7 @@ def create_cuckoo_filter(sketch_config, filter_stats):
                     insertion_tput_records.append(load_factor_step_size/(time.time() - t1))
                     step +=1
                     t1 = time.time()
+            r+=1
     end = time.time()
     filter_stats["items"] = items
     filter_stats["constr_speed"] = items / (end-start)
@@ -113,8 +117,62 @@ def create_cuckoo_filter(sketch_config, filter_stats):
     filter_stats["insertion_tput"] = insertion_tput_records
 
 
-def create_cuckoo_tree():
-    raise NotImplementedError
+def create_bloom_tree(sketch_config, filter_stats):
+    global bloomFilter
+    insertion_tput_records = []
+    # print("Creating the sketch. This might take a while ...")
+    bloomFilter = bloom_tree.BloomTree(sketch_config.theta, sketch_config.k, sketch_config.expected_items, sketch_config.fp_prob)
+    items = 0
+    load_factor_step_size = bloomFilter.expected_num / 10
+    step = 1
+    start = time.time()
+    t1 = time.time()
+    for read in read_list:
+        if bloomFilter.insert(read) == False:
+            break
+        items+=1
+        if items >= load_factor_step_size*step:
+                insertion_tput_records.append(load_factor_step_size/(time.time() - t1))
+                step +=1
+                t1 = time.time()
+
+    end = time.time()
+    filter_stats["items"] = items
+    filter_stats["constr_speed"] = items / (end-start)
+    filter_stats["load_factor"] = items / bloomFilter.expected_num
+    filter_stats["total_size"] = bloomFilter.aggregate_size
+    filter_stats["bpi"] = (filter_stats["total_size"] / items) * 8
+    filter_stats["insertion_tput"] = insertion_tput_records
+
+def create_cuckoo_tree(sketch_config, filter_stats):
+    global cuckooFilter
+    insertion_tput_records = []
+    # print("Creating the sketch. This might take a while ...")
+    sketch_config.num_buckets, sketch_config.fp_size, sketch_config.bucket_size = cuckoo_filter.get_cuckoo_filter_params(sketch_config.expected_items,
+            sketch_config.fp_prob)
+    cuckooFilter = cuckoo_tree.CuckooTree(sketch_config.theta, sketch_config.k, sketch_config.num_buckets, sketch_config.fp_size, 
+            sketch_config.bucket_size, sketch_config.max_iter)
+    items = 0
+    load_factor_step_size = (cuckooFilter.num_buckets * cuckooFilter.bucket_size) / 10
+    step = 1
+    start = time.time()
+    t1 = time.time()
+    for read in read_list:
+        if cuckooFilter.insert(read) == False:
+            break
+        items+=1
+        if items >= load_factor_step_size*step:
+                insertion_tput_records.append(load_factor_step_size/(time.time() - t1))
+                step +=1
+                t1 = time.time()
+
+    end = time.time()
+    filter_stats["items"] = items
+    filter_stats["constr_speed"] = items / (end-start)
+    filter_stats["load_factor"] = items / (cuckooFilter.num_buckets * cuckooFilter.bucket_size)
+    filter_stats["total_size"] = cuckooFilter.aggregate_size
+    filter_stats["bpi"] = (filter_stats["total_size"] / items) * 8
+    filter_stats["insertion_tput"] = insertion_tput_records
 
 def query(q):
     global cuckooFilter
@@ -187,7 +245,7 @@ def initiate(args):
         # print("File {} read into memory".format(filename))
 
     # print(read_list[:20])
-    sketch_config = SketchConfig(args.b, args.f, args.s, args.i, args.k, args.stash, args.e, args.p, args.auto)
+    sketch_config = SketchConfig(args.b, args.f, args.s, args.i, args.k, args.stash, args.e, args.p, args.t, args.auto)
     filter_stats = {
         "items" : 0,
         "constr_speed" : 0.0,
@@ -210,6 +268,12 @@ def initiate(args):
         sketch_config.bitarray_variant = True
         create_cuckoo_filter(sketch_config, filter_stats)
         filter = cuckooFilter
+    elif args.create_bloom_tree:
+        create_bloom_tree(sketch_config, filter_stats)
+        filter = bloomFilter
+    elif args.create_cuckoo_tree:
+        create_cuckoo_tree(sketch_config, filter_stats)
+        filter = cuckooFilter
     if args.fp_query:
         perform_fp_query(args.q, filter_stats, filter)
     if args.insert_tput:
@@ -223,7 +287,7 @@ def initiate(args):
 def arguments():
     usg = '''
         main.py [-h] [--datafiles DATAFILE1.FASTQ DATAFILE2.FASTQ ...] [--interactive | --create-cuckoo-filter | --create-cuckoo-filter-bit |
-            --create-bloom-filter] [-q QUERY_FILE] [--fp-query]
+            --create-bloom-filter | --create-bloom-tree | --create-cuckoo-tree] [-q QUERY_FILE] [--fp-query]
             [-b buckets] [-f fp_size] [-s bucket_size] [-i iterations] [-k Kmer_size] [-e expected_#_items] [-p false_positive_probability]
             [--stash STASH_SIZE] [--auto] [-v]
     '''
@@ -239,12 +303,15 @@ def arguments():
     parser.add_argument("-i", help="CuckooFilter; Max iterations befor insertion fails. Default=500", default=500, type=int)
     parser.add_argument("-e", help="CuckooFilterAuto&BloomFilter; Expected number of items. Default=10000", default=10000, type=int)
     parser.add_argument("-p", help="CuckooFilterAuto&BloomFilter; False positive probability. Default=0.001", default=0.001, type=float)
+    parser.add_argument("-t", help="BloomTree; Strictness of querying. Default=0.5", default=0.5, type=float)
     parser.add_argument("-q", help="Query file", default="")
     parser.add_argument("--stash", help="CuckooFilter; Stash size. Default=0", default=0, type=int)
     parser.add_argument("--auto", help="CuckooFilter; Automatically derive the fp_size, bucket_size and num of buckets from fp_probability and expected items.", dest="auto", action='store_true')
     parser.add_argument("--create-cuckoo-filter", help="Create the cuckoo filter, measure and report the statistics, then exit.", action='store_true')
     parser.add_argument("--create-cuckoo-filter-bit", help="Create the bitarray variant of cuckoo filter, measure and report the statistics, then exit.", action='store_true')
     parser.add_argument("--create-bloom-filter", help="Create the Bloom filter, measure and report the statistics, then exit.", action='store_true')
+    parser.add_argument("--create-bloom-tree", help="Create the Bloom tree, measure and report the statistics, then exit.", action='store_true')
+    parser.add_argument("--create-cuckoo-tree", help="Create the Bloom cuckoo, measure and report the statistics, then exit.", action='store_true')
     parser.add_argument("--fp-query", help="Perform false positive queries after creating the sketch, report FP rate then exit.", action='store_true')
     parser.add_argument("--insert-tput", help="Perform insertion throughput measurements.", action='store_true')
 

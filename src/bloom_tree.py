@@ -4,6 +4,7 @@ from collections import deque
 from read import Read
 from copy import deepcopy
 from bitarray import bitarray
+import sys
 
 
 class BloomTree:
@@ -21,6 +22,7 @@ class BloomTree:
         self.k: int = k
         self.expected_num = expected_num
         self.fp_prob = fp_prob
+        self.aggregate_size = self.get_insternal_size()
 
     def insert(self, read: Read) -> None:
         """
@@ -30,6 +32,7 @@ class BloomTree:
         """
         node_to_insert = Node(self.k, self.expected_num, self.fp_prob)
         node_to_insert.populate_read_info(read)
+        self.aggregate_size += node_to_insert.get_size()
 
         if self.root is None:
             self.root = node_to_insert
@@ -46,6 +49,7 @@ class BloomTree:
                 """
                 new_parent = Node(self.k, self.expected_num, self.fp_prob)
                 new_parent.parent = parent
+                self.aggregate_size += new_parent.get_size()
 
                 # Kmers from existing and new leaf
                 new_parent.filter = deepcopy(current.filter)
@@ -115,6 +119,24 @@ class BloomTree:
                     out.append(current.read_id)
         return out
 
+    def contains(self, query):
+        """
+        A wrapper for backward comptibility with other data structure implementations
+        """
+        return self.query(query)
+    
+    def get_insternal_size(self):
+        """
+        Returns the total number of bytes occupied by the filter object
+        """
+        return(
+            sys.getsizeof(self.theta) +
+            sys.getsizeof(self.expected_num) +
+            sys.getsizeof(self.fp_prob) +
+            sys.getsizeof(self.k) + 
+            sys.getsizeof(self.root)
+        )
+
 
 class Node:
 
@@ -149,6 +171,18 @@ class Node:
         temp = bitarray(self.filter.filter)
         temp |= other.filter.filter
         return temp.count(True)
+
+    def get_size(self):
+        """
+        Returns the total number of bytes occupied by the filter object
+        """
+        return(
+            sys.getsizeof(self.children) +
+            sys.getsizeof(self.parent) +
+            sys.getsizeof(self.read_id) +
+            sys.getsizeof(self.k) +
+            self.filter.get_size()
+        )
 
 
 def kmers_in_string(string: str, k):
