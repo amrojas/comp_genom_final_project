@@ -4,6 +4,7 @@ from collections import deque
 from read import Read
 from copy import deepcopy
 from bitarray import bitarray
+from bitarray.util import count_xor
 import sys
 
 
@@ -51,8 +52,8 @@ class BloomTree:
                 self.aggregate_size += new_parent.get_size()
 
                 # Kmers from existing and new leaf
-                new_parent.filter = deepcopy(current.filter)
-                new_parent.insert_kmers_from_dataset(dataset)
+                new_parent.filter.filter = bitarray(current.filter.filter)
+                new_parent.add_node_kmers(node_to_insert)
 
                 # Set appropriate parent/child pointers
                 current.parent = new_parent
@@ -72,14 +73,14 @@ class BloomTree:
                 return True
             elif current.num_children() == 1:
                 # insert kmers
-                current.insert_kmers_from_dataset(dataset)
+                current.add_node_kmers(node_to_insert)
 
                 # we found an empty slot to insert into
                 current.children.append(node_to_insert)
                 return True
             elif current.num_children() == 2:
                 # insert kmers
-                current.insert_kmers_from_dataset(dataset)
+                current.add_node_kmers(node_to_insert)
 
                 # select "best" child
                 score_0 = current.children[0].score(node_to_insert)
@@ -160,6 +161,9 @@ class Node:
             for kmer in read.kmers(self.k):
                 self.filter.insert(kmer)
 
+    def add_node_kmers(self, other: 'Node') -> None:
+        self.filter.filter |= other.filter.filter
+
     def num_children(self) -> int:
         return len(self.children)
 
@@ -168,9 +172,7 @@ class Node:
         "Hamming distance" score where lower is better
         :param other: The node to compare against
         """
-        temp = bitarray(self.filter.filter)
-        temp |= other.filter.filter
-        return temp.count(True)
+        return count_xor(self.filter.filter, other.filter.filter)
 
     def get_size(self):
         """
