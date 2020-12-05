@@ -138,5 +138,5 @@ dmypy.json
 cython_debug/
 
 .vscode/
-*.fastq
+synthetic*.fastq
 *.png
