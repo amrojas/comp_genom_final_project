@@ -11,6 +11,7 @@ from read import Read
 from config import *
 
 read_list = []
+tree_read_list = []
 cuckooFilter = None
 bloomFilter = None
 
@@ -124,18 +125,11 @@ def create_bloom_tree(sketch_config, filter_stats):
     # print("Creating the sketch. This might take a while ...")
     bloomFilter = bloom_tree.BloomTree(sketch_config.theta, sketch_config.k, sketch_config.expected_items, sketch_config.fp_prob)
     items = 0
-    load_factor_step_size = bloomFilter.expected_num / 10
-    step = 1
+
     start = time.time()
-    t1 = time.time()
-    for read in read_list:
-        if bloomFilter.insert(read) == False:
-            break
-        items+=1
-        if items >= load_factor_step_size*step:
-                insertion_tput_records.append(load_factor_step_size/(time.time() - t1))
-                step +=1
-                t1 = time.time()
+    for dataset in tree_read_list:
+        bloomFilter.insert(dataset)
+        items+=len(dataset)
 
     end = time.time()
     filter_stats["items"] = items
@@ -154,18 +148,11 @@ def create_cuckoo_tree(sketch_config, filter_stats):
     cuckooFilter = cuckoo_bit_tree.CuckooBitTree(sketch_config.theta, sketch_config.k, sketch_config.num_buckets, sketch_config.fp_size, 
             sketch_config.bucket_size, sketch_config.max_iter)
     items = 0
-    load_factor_step_size = (cuckooFilter.num_buckets * cuckooFilter.bucket_size) / 10
-    step = 1
     start = time.time()
-    t1 = time.time()
-    for read in read_list:
-        if cuckooFilter.insert(read) == False:
-            break
-        items+=1
-        if items >= load_factor_step_size*step:
-                insertion_tput_records.append(load_factor_step_size/(time.time() - t1))
-                step +=1
-                t1 = time.time()
+    print(len(tree_read_list), len(tree_read_list[0]))
+    for dataset in tree_read_list:
+        cuckooFilter.insert(dataset)
+        items+=len(dataset)
 
     end = time.time()
     filter_stats["items"] = items
@@ -256,8 +243,14 @@ def cli(args, sketch_config, filter_stats):
 def initiate(args):
     global bloomFilter
     global cuckooFilter
+    temp_list = []
+    separate_reads_per_dataset = False
+    if args.create_cuckoo_tree or args.create_bloom_tree:
+        separate_reads_per_dataset = True
     for filename in args.datafiles:
         line_ptr = 0
+        if separate_reads_per_dataset:
+            temp_list = []
         with open(filename, "r") as f:
             while True:
                 read_id = f.readline()[1:-1]
@@ -266,11 +259,13 @@ def initiate(args):
                 read_line = f.readline().strip()
                 temp = f.readline()
                 read_quality = f.readline()
-                read_list.append(Read(filename, read_id, line_ptr, read_line, read_quality))
+                temp_list.append(Read(filename, read_id, line_ptr, read_line, read_quality))
                 line_ptr+=1
-        # print("File {} read into memory".format(filename))
+        if separate_reads_per_dataset:
+            tree_read_list.append(temp_list)
+    if not separate_reads_per_dataset:
+        read_list = temp_list
 
-    # print(read_list[:20])
     sketch_config = SketchConfig(args.b, args.f, args.s, args.i, args.k, args.stash, args.e, args.p, args.t, args.auto)
     filter_stats = {
         "items" : 0,
