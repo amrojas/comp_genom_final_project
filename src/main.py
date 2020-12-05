@@ -264,7 +264,8 @@ def initiate(args):
         if separate_reads_per_dataset:
             tree_read_list.append(temp_list)
     if not separate_reads_per_dataset:
-        read_list = temp_list
+        for i in temp_list:
+            read_list.append(i)
 
     sketch_config = SketchConfig(args.b, args.f, args.s, args.i, args.k, args.stash, args.e, args.p, args.t, args.auto)
     filter_stats = {
@@ -316,7 +317,7 @@ def arguments():
             [-b buckets] [-f fp_size] [-s bucket_size] [-i iterations] [-k Kmer_size] [-e expected_#_items] [-p false_positive_probability]
             [--stash STASH_SIZE] [--auto] [-v]
     '''
-    parser = argparse.ArgumentParser(description='Cuckoo Filter Tree Implementation', usage=usg)
+    parser = argparse.ArgumentParser(description='Cuckoo/Bloom Filter variants Implementation', usage=usg)
     parser.add_argument('--datafiles', dest='datafiles', nargs="+", required=True,
                         help='The input file to populate the data structures')
     parser.add_argument("--interactive", help="Start CLI after reading files", action='store_true')

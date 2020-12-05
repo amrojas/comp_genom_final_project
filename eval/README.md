@@ -33,4 +33,39 @@ This experiment runs a parameter analysis on teh cuckoo filters. We test differe
 ```bash
 ./eval/exp2.sh
 ```
+This script takes around two hours to run and generates four csv files in the eval/ directory that can be used to create the figures 5.a to 5.d in the project writeup.
 
+#### EXP3
+This script generates the results presented in table 1, comparing Cuckoo filter variants to the Bloom filter. Note that this script needs another dataset called fp_dataset.fastq which contains reads that are NOT present in the main dataset and is used to measure the false positive rate for the indexes.
+To create the fp_dataset.fastq file, first we generate a query dataset called `synthetic.fastq` which contains 100K reads. The using the `fals_positive_dataset_generator.py` script, we create the `fp_dataset.fastq`. The script uses brute force to compare all reads in the query dataset against the large dataset and outputs all the reads that are not in the large dataset. run:
+
+```
+python3 util/fastq_generator.py -e 100000 -o synthetic.fastq
+python3 util/false_positive_dataset_generator.py -p synthetic-large.fastq -c synthetic.fastq
+```
+
+NOTE: We have provided the fp_dataset.fastq in the root directory.
+
+#### EXP4
+
+This script is used to measure the bits-per-item achieved among Bloom filters and two implementations of the Cuckoo filter using different fp_probability parametes. The results are presented in figure 6 of the write-up. Simply run:
+
+```bash
+./eval/exp4.sh
+```
+
+#### EXP7
+
+This script is used to measure the insertion throughput among Bloom filters and two implementations of the Cuckoo filter. The results are presented in figure 7 of the write-up Simply run:
+
+```bash
+./eval/exp7.sh
+```
+
+#### EXP6
+
+This script is used to measure the query throughput among Bloom filters and two implementations of the Cuckoo filter. The results are presented in figure 8 of the write-up. Simply run:
+
+```bash
+./eval/exp6.sh
+```
