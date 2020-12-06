@@ -1,4 +1,4 @@
-# Computational Genomics Final project artifacts for group #64
+# Cuckoo Trees - Computational Genomics Final Project #64
 This repository contains the source codes as well as the evaluation scrips for building different variants of Bloom and Cuckoo filters and evaluating them.
 ## Usage 
 ```
