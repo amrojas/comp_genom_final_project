@@ -44,7 +44,7 @@ python3 util/fastq_generator.py -e 100000 -o synthetic.fastq
 python3 util/false_positive_dataset_generator.py -p synthetic-large.fastq -c synthetic.fastq
 ```
 
-NOTE: We have provided the fp_dataset.fastq in the root directory.
+The above commands create a file named fp_dataset.fastq
 
 #### EXP4
 
@@ -68,4 +68,14 @@ This script is used to measure the query throughput among Bloom filters and two 
 
 ```bash
 ./eval/exp6.sh
+```
+
+#### Tree experiments
+
+To evaluate the construction speed and space efficiency of the trees using tiny datasets, we execute the following commands:
+
+```
+python3 src/main.py --datafiles d/synthetic-tiny1.fastq d/synthetic-tiny2.fastq d/synthetic-tiny3.fastq d/synthetic-tiny4.fastq --create-bloom-tree  -e 800000 -p 0.01 -k 20 -v
+
+src/main.py --datafiles d/synthetic-tiny1.fastq d/synthetic-tiny2.fastq d/synthetic-tiny3.fastq d/synthetic-tiny4.fastq --create-cuckoo-tree  -e 500000 -p 0.01 -k 80 -v
 ```
